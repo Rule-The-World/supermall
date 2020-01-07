@@ -1,11 +1,20 @@
 <template>
-  <div id="home">
+  <div id="home" class="wrapper">
     <nav-bar class="home-nav"><div slot="center">购物街</div></nav-bar>
-    <home-swiper :banners="banners"/>
-    <recommend-view :recommends="recommends"/>
-    <feature-view></feature-view>
-    <tab-control :titles="['流行','新款','精品']" class="tab-control"></tab-control>
+    
+    <scroll class="content" ref="scroll" :probe-type="3">
+      <home-swiper :banners="banners"/>
+      <recommend-view :recommends="recommends"/>
+      <feature-view/>
+      <tab-control :titles="['流行','新款','精品']" 
+      class="tab-control" @tabClick="tabClick"/>
+      <goods-list :goods="showGooods"/>
+    </scroll>
 
+
+    <!-- 组件监听事件必须加'.native' -->
+    <back-top @click.native="backClick"></back-top>
+    
   </div>
 </template>
 
@@ -16,6 +25,9 @@
 
   import NavBar from 'components/common/navbar/NavBar'
   import TabControl from "components/content/tabControl/TabControl"
+  import GoodsList from "components/content/goods/GoodsList"
+  import Scroll from 'components/common/scroll/Scroll'
+  import BackTop from 'components/content/backTop/BackTop'
 
   import {getHomeMuLtidata,getHomeGoods} from "network/home"
 
@@ -26,7 +38,10 @@
       HomeSwiper,
       RecommendView,
       FeatureView,
-      TabControl
+      TabControl,
+      GoodsList,
+      Scroll,
+      BackTop
     },
     //应该是父子组件传信的知识点，在复习一下
     data(){
@@ -37,7 +52,13 @@
           'pop':{page:0,list:[]},
           'new':{page:0,list:[]},
           'sell':{page:0,list:[]}
-        }
+        },
+        currentType:'pop'
+      }
+    },
+    computed:{
+      showGooods(){
+        return this.goods[this.currentType].list
       }
     },
     created(){
@@ -49,6 +70,25 @@
       this.getHomeGoods('sell')
     },
     methods:{
+      /* 事件监听相关方法 */
+      tabClick(index){
+        switch (index) {  
+          case 0:
+            this.currentType="pop"
+            break;
+          case 1:
+            this.currentType="new"
+            break;
+          case 2:
+            this.currentType="sell"
+            break;
+        }
+      },
+      backClick(){
+        this.$refs.scroll.scrollTo(0,0)
+      }, 
+
+      /* 网络请求相关方法 */
       getHomeMuLtidata(){
         getHomeMuLtidata().then(res => {
         this.banners = res.data.banner.list;
@@ -58,18 +98,22 @@
         getHomeGoods(type){
          const page=this.goods[type].page+1
          getHomeGoods(type,page).then(res =>{
-           /* this.goods[type].list.push(...res.data.list)
-           this.goods[type].page+=1 */
-           console.log(res)
-      })
-       } 
+           //对list数组进行解析并把内容push到goods中的list数组中
+           this.goods[type].list.push(...res.data.list)
+           this.goods[type].page+=1 
+           //console.log(res)
+      }) 
+      } 
     }
   }
 </script>
-
+<!-- scoped可理解为作用域只在当前文件有效 -->
 <style scoped>
   #home {
     padding-top: 44px;
+    height: 100vh;
+    position: relative;
+   
   }
   .home-nav {
     background-color: var(--color-tint);
@@ -83,5 +127,14 @@
   .tab-control{
     position: sticky;
     top:44px;
+    z-index: 9;
+  }
+  .content{
+    overflow: hidden; 
+    position: absolute;
+    top: 44px;
+    bottom: 49px;
+    left: 0;
+    right: 0;
   }
 </style>
