@@ -84,6 +84,8 @@
       //1.保存y值
       this.saveY= this.$refs.scroll.getScrollY()
       //console.log(this.saveY)
+      //2.取消全局事件的监听
+      this.$bus.$off('itemImageLoad',)
     },
     created(){
       //1.请求数据    
@@ -97,11 +99,10 @@
     mounted(){
       //1.监听item中图片加载完成
       let refresh =debounce(this.$refs.scroll.refresh)
-      //对监听事件进行保存
 
-      this.itemImageLoad = ()=> {
+      this.$bus.$on('itemImageLoad' , ()=> {
          refresh()
-      }
+      })
 
       },
     methods:{

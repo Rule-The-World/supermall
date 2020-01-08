@@ -1,15 +1,17 @@
 <template>
   <div id="detail">
-      <detail-nav-bar class="detail-nav"/>
-      <scroll class="content" ref="scroll">
+      <detail-nav-bar class="detail-nav" 
+      @titleClick="titleClick" ref="nav"/>
+      <scroll class="content" ref="scroll" 
+      :probe-type="3" @scroll="contentScroll">
         <detail-swiper :top-images="topImages"/>
         <detail-base-info :goods="goods"/>
         <detail-shop-info :shop="shop"/>
         <detail-goods-info :detail-info="detailInfo" 
         @imageLoad="imageLoad"/>
-        <detail-param-info :param-info="paramInfo"/>
-        <detail-comment-info :comment-info="commentInfo"/>
-        <goods-list :goods="recommends"/>
+        <detail-param-info ref="params" :param-info="paramInfo"/>
+        <detail-comment-info ref="comment" :comment-info="commentInfo"/>
+        <goods-list ref="recommend" :goods="recommends"/>
 
       </scroll>
   </div>
@@ -28,6 +30,7 @@ import GoodsList from "components/content/goods/GoodsList"
 import Scroll from "components/common/scroll/Scroll"
 
 import {getDetail,getRecommend,Goods,Shop,GoodsParam} from "network/detail"
+import {debounce} from "common/utils"
 
 export default {
     name:'Detail',
@@ -52,6 +55,9 @@ export default {
             paramInfo:{},
             commentInfo:{},
             recommends:[],
+            themeTopYs:[],
+            getThemeTopY: null,
+            currentIndex: 0,
 
 
         }
@@ -83,10 +89,42 @@ export default {
         getRecommend().then(res=>{
             this.recommends=res.data.list
         })
+        //4.给getThemeTopY复制(对给this.themeTopYs赋值的操作进行防抖)
+        this.getThemeTopY = debounce(()=>{
+            this.themeTopYs=[]
+            this.themeTopYs.push(0)
+            this.themeTopYs.push(this.$refs.params.$el.offsetTop)
+            this.themeTopYs.push(this.$refs.comment.$el.offsetTop)
+            this.themeTopYs.push(this.$refs.recommend.$el.offsetTop)
+            //console.log(this.themeTopYs)
+        },100)
     },
     methods:{
         imageLoad(){
             this.$refs.scroll.refresh()
+            this.getThemeTopY()
+            
+
+        },
+        titleClick(index){
+            //console.log(index)
+            this.$refs.scroll.scrollTo(0, -this.themeTopYs[index], 200)
+            
+        },
+        contentScroll(position){
+            //console.log(position)
+            const positionY = -position.y
+            let length = this.themeTopYs.length
+            for (let i = 0;i < length;i++) {
+                if(this.currentIndex !== i && ((i < length - 1 && 
+                positionY >= this.themeTopYs[i]
+                && positionY < this.themeTopYs[i+1]) || 
+                (i === length - 1 && positionY >= this.themeTopYs[i]))){
+                    this.currentIndex = i;
+                    console.log(this.currentIndex)
+                    this.$refs.nav.currentIndex = this.currentIndex
+                }
+            }
         }
     }
 }
